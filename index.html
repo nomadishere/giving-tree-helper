@@ -35,6 +35,7 @@ small{color:#666}
   <button id="go">Start helping</button>
   <button id="stop" class="stop hide">Stop</button>
   <p id="stat">Not started.</p>
+  <p><small>Helper page v2</small></p>
   <div id="log"></div>
   <p><button id="forget" class="plain">Remove the helper code from this device</button></p>
 </div>
@@ -63,12 +64,18 @@ async function load(){
 }
 async function work(j){
   if($('dry').checked)return{out:'test run ok',model:'dry'};
+  if(!engine)await load();
   const r=await engine.chat.completions.create({messages:[{role:'user',content:(PROMPT[j.kind]||'')+j.input}],max_tokens:80});
   return{out:r.choices[0].message.content.trim(),model:MODEL};
 }
 async function run(){
   while(running){
     let jobs;
+    if(!$('dry').checked&&!engine){
+      try{$('stat').textContent='Getting the model ready.';await load();log('model ready')}
+      catch(e){halt(String(e.message||e));return}
+      if(!running)break;
+    }
     try{jobs=await rpc('helper_claim',{p_secret:SECRET,p_name:NAME})}
     catch(e){if(/bad worker/i.test(e.message)){halt('That helper code was not accepted. Ask Woz for a new one.');return}
       $('stat').textContent='Cannot reach the queue. Trying again.';log('claim error: '+e.message);await sleep(15000);continue}
