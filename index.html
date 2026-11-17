@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>The Giving Tree Helper</title>
+<style>
+:root{--pink:#e0568c;--teal:#00c8c8;--ink:#222;--soft:#f4fbfb}
+*{box-sizing:border-box}
+body{font-family:-apple-system,system-ui,sans-serif;background:#fff;color:var(--ink);margin:0 auto;padding:24px;max-width:480px;line-height:1.45}
+h1{color:var(--pink);font-size:24px;margin:0 0 4px}
+.line{height:3px;background:var(--teal);margin:10px 0 18px}
+button{font-size:20px;padding:16px 24px;border:0;border-radius:14px;background:var(--pink);color:#fff;width:100%;margin:8px 0;min-height:56px}
+button.stop{background:#00a8a8}
+button.plain{background:#fff;color:#00a8a8;border:2px solid var(--teal);font-size:16px;min-height:48px;padding:10px}
+input[type=text]{width:100%;font-size:16px;padding:14px;border:2px solid var(--teal);border-radius:12px;margin:6px 0}
+label.row{display:flex;gap:10px;align-items:center;margin:10px 0;font-size:16px}
+label.row input{width:22px;height:22px}
+#stat{font-weight:600;margin:14px 0 8px}
+#log{background:var(--soft);border:1px solid var(--teal);border-radius:10px;padding:10px;font-size:14px;min-height:80px;white-space:pre-wrap;word-break:break-word}
+small{color:#666}
+.hide{display:none}
+</style></head><body>
+<h1>The Giving Tree Helper</h1><div class="line"></div>
+<p>This page lends a little spare time from this device to Woz's helper queue. It runs only while this page is open and you have tapped <b>Start</b>. Tap <b>Stop</b> any time. It only gets harmless practice jobs. It cannot see your messages, photos, contacts or accounts.</p>
+
+<div id="setup">
+  <p><b>First time:</b> paste the helper code Woz gave you. It stays on this device only.</p>
+  <input id="code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="helper code">
+  <button id="save">Save code</button>
+</div>
+
+<div id="main" class="hide">
+  <label class="row"><input id="dry" type="checkbox" checked> Test run (no model download)</label>
+  <p><small>Untick it to do real jobs. The first real start downloads a small model (about 700 MB), so use Wi-Fi and keep the device plugged in.</small></p>
+  <button id="go">Start helping</button>
+  <button id="stop" class="stop hide">Stop</button>
+  <p id="stat">Not started.</p>
+  <div id="log"></div>
+  <p><button id="forget" class="plain">Remove the helper code from this device</button></p>
+</div>
+
+<script type="module">
+const U='https://wwqjoagdnclaylllzcut.supabase.co/rest/v1/rpc/';
+const K='sb_publishable_AVIpI00DFiYwugP16-wMWQ_qENLObrc';
+const MODEL='Llama-3.2-1B-Instruct-q4f16_1-MLC';
+const PROMPT={tag:'Give 3 to 5 short topic tags, comma separated, for this text. Tags only.\n\n',summarize:'Summarize this text in one plain sentence.\n\n'};
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const log=t=>{$('log').textContent=new Date().toLocaleTimeString()+' '+t+'\n'+$('log').textContent.slice(0,4000)};
+const store={get(){try{return localStorage.getItem('gt_code')}catch(e){return null}},set(v){try{localStorage.setItem('gt_code',v)}catch(e){}},del(){try{localStorage.removeItem('gt_code')}catch(e){}}};
+let NAME=null,SECRET=null,running=false,engine=null,done=0,lock=null,mem=null;
+
+function parse(c){const m=(c||'').trim().match(/^(.+):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);return m?{name:m[1].trim(),secret:m[2]}:null}
+function show(){const p=parse(mem||store.get());if(p){NAME=p.name;SECRET=p.secret}else{NAME=SECRET=null}
+  $('setup').classList.toggle('hide',!!p);$('main').classList.toggle('hide',!p)}
+async function rpc(f,b){const r=await fetch(U+f,{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify(b)});
+  const t=await r.text();const d=t?JSON.parse(t):null;if(!r.ok)throw new Error((d&&d.message)||('HTTP '+r.status));return d}
+async function load(){
+  if($('dry').checked||engine)return;
+  if(!navigator.gpu)throw new Error('This browser cannot run the model (no WebGPU). Use Test run, or try a newer phone or computer.');
+  const webllm=await import('https://esm.run/@mlc-ai/web-llm');
+  engine=await webllm.CreateMLCEngine(MODEL,{initProgressCallback:p=>{$('stat').textContent='Loading model: '+Math.round((p.progress||0)*100)+'%'}});
+}
+async function work(j){
+  if($('dry').checked)return{out:'test run ok',model:'dry'};
+  const r=await engine.chat.completions.create({messages:[{role:'user',content:(PROMPT[j.kind]||'')+j.input}],max_tokens:80});
+  return{out:r.choices[0].message.content.trim(),model:MODEL};
+}
+async function run(){
+  while(running){
+    let jobs;
+    try{jobs=await rpc('helper_claim',{p_secret:SECRET,p_name:NAME})}
+    catch(e){if(/bad worker/i.test(e.message)){halt('That helper code was not accepted. Ask Woz for a new one.');return}
+      $('stat').textContent='Cannot reach the queue. Trying again.';log('claim error: '+e.message);await sleep(15000);continue}
+    if(!running)break;
+    if(!jobs||!jobs.length){$('stat').textContent='Waiting for jobs. Done so far: '+done;await sleep(10000);continue}
+    const j=jobs[0];$('stat').textContent='Working on job '+j.id+'. Done so far: '+done;
+    let out,model='none',ok=true;
+    try{const r=await work(j);out=r.out;model=r.model}catch(e){out='error '+(e.message||e);ok=false}
+    try{await rpc('helper_done',{p_secret:SECRET,p_name:NAME,p_id:j.id,p_model:model,p_result:out,p_ok:ok});if(ok)done++;log('job '+j.id+(ok?': ':' FAILED: ')+out.slice(0,70))}
+    catch(e){log('could not report job '+j.id+': '+e.message)}
+    await sleep(1500);
+  }
+}
+async function awake(){try{if('wakeLock' in navigator)lock=await navigator.wakeLock.request('screen')}catch(e){}}
+function halt(msg){running=false;try{lock&&lock.release()}catch(e){}lock=null;$('stat').textContent=msg;$('stop').classList.add('hide');$('go').classList.remove('hide')}
+$('save').onclick=()=>{const v=$('code').value;if(!parse(v)){$('code').value='';$('code').placeholder='That code does not look right. Paste it again.';return}mem=v.trim();store.set(mem);$('code').value='';show()};
+$('forget').onclick=()=>{if(running)halt('Stopped.');mem=null;store.del();show()};
+$('go').onclick=async()=>{
+  $('go').classList.add('hide');$('stop').classList.remove('hide');running=true;$('stat').textContent='Starting.';
+  try{await load();await awake();log('ready'+($('dry').checked?' (test run)':''));run()}catch(e){halt(String(e.message||e))}
+};
+$('stop').onclick=()=>halt('Stopped. Thank you! Done: '+done);
+document.addEventListener('visibilitychange',()=>{if(running&&document.visibilityState==='visible'&&!lock)awake()});
+show();
+</script></body></html>
