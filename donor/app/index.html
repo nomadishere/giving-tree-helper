@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Giving Tree Helper</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ff4fa3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Giving Tree">
+<style>
+:root{--pink:#ff4fa3;--turq:#40e0d0;--ink:#2b1a26;--bg:#fff5fa}
+*{box-sizing:border-box}
+body{margin:0;font:17px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto}
+h1{color:var(--pink);font-size:28px;margin:20px 0 4px}
+h2{color:var(--pink);font-size:20px;margin:0 0 8px}
+.sub{margin:0 0 16px}
+.card{background:#fff;border:2px solid var(--turq);border-radius:16px;padding:16px;margin:0 0 16px}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input[type=text],input[type=email],input[type=password],select{width:100%;font:inherit;padding:12px;border:2px solid var(--turq);border-radius:10px;background:#fff;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--pink)}
+.row{display:block;margin-top:12px}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:12px}
+.check input{width:24px;height:24px;margin-top:3px;flex:none;accent-color:var(--pink)}
+button{font:inherit;font-weight:700;padding:14px 18px;border-radius:12px;border:2px solid var(--pink);background:var(--pink);color:#fff;width:100%;margin-top:12px;min-height:48px}
+button.alt{background:#fff;color:var(--pink)}
+button.quiet{background:#fff;color:var(--ink);border-color:var(--turq)}
+button:disabled{opacity:.5}
+.status{font-size:20px;font-weight:700}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#bbb;margin-right:8px}
+.on .dot{background:var(--turq);box-shadow:0 0 0 4px rgba(64,224,208,.3)}
+.small{font-size:14px;opacity:.85}
+.msg{margin-top:10px;padding:10px;border-radius:10px;background:#f2fffd;border:1px solid var(--turq)}
+.err{background:#fff0f0;border-color:#e44}
+.hidden{display:none}
+.consent{font-size:15px;background:#fff5fa;border-left:4px solid var(--turq);padding:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Giving Tree Helper</h1>
+<p class="sub">Lend a little spare time on this phone to small, harmless text jobs. Pause or leave any time.</p>
+
+<section class="card" id="helperCard">
+  <h2>Helper</h2>
+  <div class="status" id="status"><span class="dot"></span><span id="statusText">Stopped</span></div>
+  <div class="small" id="stats">0 jobs done on this device this visit</div>
+
+  <div id="needToken">
+    <label for="token">Your personal token (starts with gtd_)</label>
+    <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="paste it here after you are approved">
+    <button id="saveToken" class="alt">Save token on this phone</button>
+  </div>
+
+  <div id="haveToken" class="hidden">
+    <div class="consent" id="consentBox">
+      <b>Before you start:</b> this lends spare time on this phone, at the share you pick, to small harmless text jobs (tag, summarize, count). It never reads your files, photos, contacts, messages or accounts. No money moves. Pause or leave any time.
+      <div class="check"><input type="checkbox" id="agree"><label for="agree" style="margin:0;font-weight:400">I agree</label></div>
+    </div>
+    <label for="share">Share: <span id="shareVal">10</span>% of the time</label>
+    <input id="share" type="range" min="1" max="100" value="10">
+    <button id="startBtn">Start helping</button>
+    <button id="pauseBtn" class="alt" disabled>Pause</button>
+    <div class="check"><input type="checkbox" id="wake"><label for="wake" style="margin:0;font-weight:400">Keep the screen on while helping (uses more battery)</label></div>
+    <button id="leaveBtn" class="quiet">Leave Giving Tree</button>
+  </div>
+  <div id="msg" class="msg hidden"></div>
+  <p class="small"><b>Honest limits:</b> this works while the app is open on screen. iPhones and Android phones freeze web apps in the background, so closing it or locking the screen stops the helping. Best used plugged in. It uses a little battery and data.</p>
+</section>
+
+<section class="card" id="signupCard">
+  <h2>New here? Sign up</h2>
+  <p class="small">You join a list. Nothing runs until you are approved, get your token, and tap Agree.</p>
+  <form id="signup">
+    <label for="name">Your name</label>
+    <input id="name" type="text" maxlength="80" required autocomplete="name">
+    <label for="email">Email</label>
+    <input id="email" type="email" maxlength="200" required autocomplete="email">
+    <label for="device">This device</label>
+    <select id="device"><option value="iphone">iPhone</option><option value="android">Android</option><option value="mac">Mac</option><option value="windows">Windows PC</option><option value="other">Other</option></select>
+    <label for="sshare">Share: <span id="sshareVal">10</span>% of the time</label>
+    <input id="sshare" type="range" min="1" max="100" value="10">
+    <div class="check"><input type="checkbox" id="sconsent"><label for="sconsent" style="margin:0;font-weight:400">I agree to lend spare time to small harmless jobs. I can pause or leave any time.</label></div>
+    <button type="submit" id="signupBtn">Sign me up</button>
+  </form>
+  <div id="smsg" class="msg hidden"></div>
+</section>
+</main>
+
+<script>
+"use strict";
+const BASE = "https://wwqjoagdnclaylllzcut.supabase.co";
+const KEY = "sb_publishable_AVIpI00DFiYwugP16-wMWQ_qENLObrc"; // public by design; grants nothing without a donor token
+const PUBLIC_KINDS = ["tag", "summarize", "count"];
+const $ = id => document.getElementById(id);
+const store = { get: k => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => { try { localStorage.removeItem(k); } catch (e) {} } };
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ---- jobs: simple rules, same ideas as the Mac/PC worker ----
+const STOP = new Set("the a an and or but if then of to in on at for with from by is are was were be been being it its this that these those as not no so than too very can will just into over under about after before while which who whom what when where why how their there they them you your we our he she his her i me my also more most some any each other such only own same".split(" "));
+function doCount(t) { const w = t.split(/\s+/).filter(Boolean).length; const s = t.split(/[.!?]+(?:\s|$)/).filter(x => x.trim()).length; return `words=${w} chars=${t.length} sentences=${s}`; }
+function doTag(t) { const freq = {}, first = {}; (t.toLowerCase().match(/[a-z][a-z'-]*/g) || []).forEach((w, i) => { if (w.length < 4 || STOP.has(w)) return; freq[w] = (freq[w] || 0) + 1; if (!(w in first)) first[w] = i; }); const top = Object.keys(freq).sort((a, b) => freq[b] - freq[a] || first[a] - first[b]).slice(0, 3); return top.length ? top.join(", ") : "misc"; }
+function doSummarize(t) { const sents = t.trim().split(/(?<=[.!?])\s+/).filter(x => x.trim()); const out = []; for (const s of sents) { if ((out.concat([s]).join(" ")).split(/\s+/).length > 25) break; out.push(s); } return (out.length ? out.join(" ") : t.split(/\s+/).slice(0, 25).join(" ")).slice(0, 400); }
+function runJob(kind, text) { text = (text || "").slice(0, 4000); return { tag: doTag, summarize: doSummarize, count: doCount }[kind](text); }
+
+// ---- server ----
+async function rpc(fn, body) {
+  const r = await fetch(BASE + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const txt = await r.text();
+  if (!r.ok) throw new Error("server said " + r.status + ": " + txt.slice(0, 120));
+  return txt.trim() ? JSON.parse(txt) : null;
+}
+
+// ---- UI state ----
+let running = false, paused = false, done = 0, timer = null, wakeLock = null, busyNow = false, lastBattery = null;
+function msg(el, text, bad) { el.textContent = text; el.className = "msg" + (bad ? " err" : ""); }
+function setStatus(text, on) { $("statusText").textContent = text; $("status").className = "status" + (on ? " on" : ""); $("stats").textContent = done + " job" + (done === 1 ? "" : "s") + " done on this device this visit"; }
+function render() {
+  const has = store.get("gt_token").startsWith("gtd_");
+  $("needToken").classList.toggle("hidden", has); $("haveToken").classList.toggle("hidden", !has);
+  $("consentBox").classList.toggle("hidden", store.get("gt_consent") === "v1");
+  $("startBtn").textContent = running ? "Stop helping" : "Start helping";
+  $("pauseBtn").disabled = !running; $("pauseBtn").textContent = paused ? "Resume" : "Pause";
+  $("share").value = store.get("gt_share") || 10; $("shareVal").textContent = $("share").value;
+}
+
+async function wakeOn() { try { if ("wakeLock" in navigator && $("wake").checked) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
+function wakeOff() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+if ("getBattery" in navigator) navigator.getBattery().then(b => { lastBattery = b; }).catch(() => {});
+const batteryOk = () => !lastBattery || lastBattery.charging || lastBattery.level >= 0.3;
+
+function later(ms) { clearTimeout(timer); timer = setTimeout(loop, ms); }
+async function loop() {
+  if (!running || busyNow) return;
+  const token = store.get("gt_token"); if (!token) return;
+  if (paused) { setStatus("Paused by you", false); return later(3000); }
+  if (!batteryOk()) { setStatus("Paused: battery low", false); return later(30000); }
+  if (document.visibilityState === "hidden") { setStatus("Waiting: keep this app open on screen", false); return later(5000); }
+  busyNow = true;
+  try {
+    const jobs = await rpc("donor_claim", { p_token: token });
+    if (!running) { busyNow = false; return; }
+    if (!jobs || !jobs.length) { busyNow = false; if (!paused) setStatus("Helping: waiting for jobs", true); return later(paused ? 3000 : 15000); }
+    const j = jobs[0], t0 = performance.now();
+    setStatus("Helping: working on a job", true);
+    if (!PUBLIC_KINDS.includes(j.kind)) { await rpc("donor_done", { p_token: token, p_id: j.id, p_model: "none", p_result: "skipped: not a public kind", p_ok: false }); busyNow = false; return later(2000); }
+    let out, ok = true; try { out = runJob(j.kind, j.input); } catch (e) { out = "error: " + String(e).slice(0, 200); ok = false; }
+    await rpc("donor_done", { p_token: token, p_id: j.id, p_model: "rules-v1-web", p_result: out, p_ok: ok });
+    done++; busyNow = false; setStatus("Helping: job " + j.id + " done", true);
+    const share = Number(store.get("gt_share") || 10), busy = Math.max(performance.now() - t0, 1000);
+    later(Math.min(Math.max(5000, busy * (100 - share) / Math.max(share, 1)), 600000));
+  } catch (e) { busyNow = false; setStatus("Error, retrying: " + String(e.message).slice(0, 60), false); later(30000); }
+}
+
+// ---- events ----
+$("share").addEventListener("input", () => { $("shareVal").textContent = $("share").value; });
+$("share").addEventListener("change", async () => { store.set("gt_share", $("share").value); try { await rpc("donor_set", { p_token: store.get("gt_token"), p_paused: paused, p_share: Number($("share").value), p_leave: false }); } catch (e) { msg($("msg"), "Could not save share: " + e.message, true); } });
+$("sshare").addEventListener("input", () => { $("sshareVal").textContent = $("sshare").value; });
+$("saveToken").addEventListener("click", () => { const t = $("token").value.trim(); if (!t.startsWith("gtd_")) return msg($("msg"), "That does not look like a Giving Tree token. It starts with gtd_", true); store.set("gt_token", t); $("token").value = ""; $("msg").className = "msg hidden"; render(); });
+$("agree").addEventListener("change", () => { if ($("agree").checked) { store.set("gt_consent", "v1"); render(); } });
+$("startBtn").addEventListener("click", async () => {
+  if (running) { running = false; clearTimeout(timer); wakeOff(); setStatus("Stopped", false); return render(); }
+  if (store.get("gt_consent") !== "v1") return msg($("msg"), "Please tick I agree first.", true);
+  running = true; paused = false; $("msg").className = "msg hidden"; await wakeOn(); setStatus("Helping: starting", true); render(); loop();
+});
+$("pauseBtn").addEventListener("click", async () => { paused = !paused; setStatus(paused ? "Paused by you" : "Helping: resuming", !paused); try { await rpc("donor_set", { p_token: store.get("gt_token"), p_paused: paused, p_share: null, p_leave: false }); } catch (e) {} render(); if (!paused) loop(); });
+$("wake").addEventListener("change", () => { $("wake").checked && running ? wakeOn() : wakeOff(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && running) { wakeOn(); later(500); } });
+$("leaveBtn").addEventListener("click", async () => {
+  if (!confirm("Leave Giving Tree? This tells the server you left and wipes your token from this phone.")) return;
+  running = false; clearTimeout(timer); wakeOff();
+  try { await rpc("donor_set", { p_token: store.get("gt_token"), p_paused: true, p_share: null, p_leave: true }); } catch (e) {}
+  store.del("gt_token"); store.del("gt_consent"); store.del("gt_share"); setStatus("Stopped", false); render(); msg($("msg"), "You left Giving Tree. Token wiped from this phone. Thank you.");
+});
+$("signup").addEventListener("submit", async ev => {
+  ev.preventDefault(); const btn = $("signupBtn"); btn.disabled = true;
+  try {
+    const r = await fetch(BASE + "/functions/v1/giving-tree-signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: $("name").value.trim(), email: $("email").value.trim(), device: $("device").value, share_percent: Number($("sshare").value), consent: $("sconsent").checked }) });
+    const j = await r.json().catch(() => ({})); if (r.ok && j.ok) { msg($("smsg"), j.message); $("signup").reset(); } else msg($("smsg"), j.error || "Could not sign up, try again later.", true);
+  } catch (e) { msg($("smsg"), "No connection. Try again.", true); }
+  btn.disabled = false;
+});
+// pick a sensible default device
+(() => { const ua = navigator.userAgent; $("device").value = /iPhone|iPad/.test(ua) ? "iphone" : /Android/.test(ua) ? "android" : /Mac/.test(ua) ? "mac" : /Windows/.test(ua) ? "windows" : "other"; })();
+render(); setStatus("Stopped", false);
+</script>
+</body>
+</html>
